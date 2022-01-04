@@ -97,20 +97,3 @@ for u in temp.groupby('new_cs_user').groups.keys():
     site_grp = site.groupby('cs-host').sum()['cs-bytes-in-Kb'] 
     print("user uploading is ", u)
     print ( site_grp [ site_grp > 1000 ] )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
