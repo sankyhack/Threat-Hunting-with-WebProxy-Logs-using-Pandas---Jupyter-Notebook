@@ -1,0 +1,116 @@
+import pandas as pd
+
+df = pd.read_csv('/home/sansforensics/Desktop/Blucoat_Pandas/Demo_log_004.log',engine='python', sep=' ',error_bad_lines=False)
+df
+
+df.shape
+df.columns
+
+1) Uncategorized sites
+
+df[df['sc-filter-category'] == "unavailable"]['cs-host'].unique()
+
+df[df['sc-filter-category'] == "unavailable"]['c-ip'].unique()
+
+2) Systems connecting maliciou sites ( categories ) 
+df['sc-filter-category'].unique()
+df [ df['sc-filter-category'].str.contains('mal|Mal|bot|spy',case=False) == True]
+df [ df['sc-filter-category'].str.contains('mal|Mal|bot|spy',case=False) == True]['cs-host'].values 
+df [ df['sc-filter-category'].str.contains('mal|Mal|bot|spy',case=False) == True]['cs-host'].unique()
+df [ df['sc-filter-category'].str.contains('mal|Mal|bot|spy',case=False) == True]['cs-host'].value_counts()
+
+3) IP based communication.
+df [ df['cs-host'].str.contains(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}') == True ]['cs-host'].unique()
+df [df['cs-host'].str.contains(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}') == True ][['cs-host','sc-status']]
+
+
+4)  HTTP POST / PUT method...... data exfiltration
+df [(df['cs-method'] == 'POST') | (df['cs-method'] == 'PUT')][['c-ip','cs-host','cs-bytes']]
+
+5) Content Type 
+
+df['rs(Content-Type)'].unique()
+df [ ( df['rs(Content-Type)'] == 'application/x-www-urlform-encoded' ) == True ]['cs-host'].unique()
+df [ (df['rs(Content-Type)'] == 'application/octate-stream') == True ]
+
+images with malicious content
+df[ (df['cs-uri-path'].str.contains('png|PNG') ) & ( df['rs(Content-Type)'] == 'application/octate-stream') ]['rs(Content-Type)']
+
+6) sites where max data is uploaded
+df.groupby('cs-host').sum().sort_values('cs-bytes',ascending=False)
+
+test = df.groupby('cs-host').sum().sort_values('cs-bytes',ascending=False)
+test [ test > 5000000 ]
+
+7)  User Agent string checks
+
+df['cs(User-Agent)'].unique()
+
+- hunitng for powershell | python | curl | office  User agent string
+df [df['cs(User-Agent)'].str.contains('pow|office|python|curl', case= False) == True]['cs(User-Agent)'].unique()
+
+- less occuring UA
+temp = df['cs(User-Agent)'].value_counts() < 5
+temp.tail(10).index
+
+- print UA with values
+temp = df['cs(User-Agent)'].value_counts()[df['cs(User-Agent)'].value_counts() < 5 ]
+
+temp [ temp == 4 ].index
+
+8)  Quick check with whois data
+temp = df [ df ['cs(User-Agent)'] == 'Windows-Update-Agent']['cs-host'].unique()
+
+for i in temp:
+    c_date =  str ( whois.whois(i).creation_date )
+    print(i + "\t" + c_date)
+	
+	
+9) Adding column based on certain criteria
+import numpy as np
+conditions = [
+    (df['sc-bytes'] <= 500),
+    (df['sc-bytes'] > 500) & (df['sc-bytes'] <= 1000),
+    (df['sc-bytes'] > 1000) & (df['sc-bytes'] <= 1500),
+    (df['sc-bytes'] > 1500)
+    ]
+
+# create a list of the values we want to assign for each condition
+values = ['sanket', 'suraj', 'parth', 'jay']
+
+# create a new column and use np.select to assign values to it using our lists as arguments
+df['new_cs_user'] = np.select(conditions, values)
+
+# display updated DataFrame
+df.head()
+
+10 )  User uploading data
+# adding  new column with data in Kb
+df['cs-bytes-in-Kb'] = df['cs-bytes'].apply(lambda x : x/1000)
+df['cs-bytes-in-Kb'].sort_values(ascending=False)
+
+# POST method check
+df.groupby('cs-host').sum()['cs-bytes-in-Kb']
+temp = df[df['cs-method'] == "POST"]
+for u in temp.groupby('new_cs_user').groups.keys():
+    site = temp [ temp['new_cs_user'] == u]
+    site_grp = site.groupby('cs-host').sum()['cs-bytes-in-Kb'] 
+    print("user uploading is ", u)
+    print ( site_grp [ site_grp > 1000 ] )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
